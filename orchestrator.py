@@ -14,8 +14,17 @@ Or import:      from orchestrator import Orchestrator
 
 import requests
 import json
+import sys
 from dataclasses import dataclass, field
 from typing import Optional
+
+# On Windows, the default console encoding can be CP1252; this file prints
+# unicode/emoji symbols in CLI output. Force UTF-8 (best-effort) so execution
+# doesn't crash with UnicodeEncodeError.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 # ─── API base URLs ─────────────────────────────────────────────────────────────
 SERVICES = {

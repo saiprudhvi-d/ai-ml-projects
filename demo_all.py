@@ -8,11 +8,19 @@ Swap mock functions for real model calls once you run on your own hardware.
 import threading
 import time
 import random
+import sys
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
+
+# On Windows, the default console encoding may be CP1252; some demo prints use
+# unicode glyphs. Force UTF-8 (best-effort) so the runner always starts.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 # ─── Shared Pydantic models ───────────────────────────────────────────────────
 class TextReq(BaseModel):
@@ -388,22 +396,22 @@ def run_server(app, port):
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="error")
 
 if __name__ == "__main__":
-    print("╔══════════════════════════════════════════════╗")
-    print("║  🚀  All 8 AI Projects — Demo Mode           ║")
-    print("╠══════════════════════════════════════════════╣")
+    print("================================================")
+    print("Launching 8 AI Projects - Demo Mode")
+    print("================================================")
     threads = []
     for app, port in SERVERS:
         t = threading.Thread(target=run_server, args=(app, port), daemon=True)
         t.start()
         threads.append(t)
-        print(f"║  ▶  {app.title:30s} :{ port}  ║")
+        print(f"- Starting {app.title:30s} :{port}")
         time.sleep(0.3)
 
-    print("╚══════════════════════════════════════════════╝")
-    print("\n✅ All services running. Press Ctrl+C to stop.\n")
+    print("------------------------------------------------")
+    print("\nAll services running. Press Ctrl+C to stop.\n")
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n🛑 Shutting down.")
+        print("\nStopping services.")
