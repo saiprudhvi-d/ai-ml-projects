@@ -1,0 +1,40 @@
+{
+  "name": "ai-code-suggest",
+  "displayName": "AI Code Suggestion (Code Llama)",
+  "description": "Fine-tuned Code Llama-7B inline completions via local FastAPI backend",
+  "version": "1.0.0",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other", "Machine Learning"],
+  "activationEvents": ["onLanguage:python"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiCodeSuggest.explain",
+        "title": "AI: Explain Selected Code"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "aiCodeSuggest.explain",
+        "key": "ctrl+alt+e",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "AI Code Suggest",
+      "properties": {
+        "aiCodeSuggest.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:8002",
+          "description": "URL of the FastAPI backend"
+        },
+        "aiCodeSuggest.maxTokens": {
+          "type": "number",
+          "default": 80,
+          "description": "Max tokens for inline suggestions"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,187 @@
+version: "3.9"
+
+# ─── Shared network ────────────────────────────────────────────────────────────
+networks:
+  ai_network:
+    driver: bridge
+
+# ─── Shared model cache volume ────────────────────────────────────────────────
+volumes:
+  hf_cache:
+  faiss_data:
+  chroma_data:
+
+services:
+
+  # ── 01 · Q&A Bot ─────────────────────────────────────────────────────────────
+  qa_bot:
+    build:
+      context: ./01_qa_bot
+    image: ai_projects/qa_bot:latest
+    container_name: qa_bot
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_DIR=/app/model_output
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+      - ./01_qa_bot/model_output:/app/model_output
+    networks: [ai_network]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── 02 · Contract Analysis ────────────────────────────────────────────────────
+  contract_analysis:
+    build:
+      context: ./02_contract_analysis
+    image: ai_projects/contract_analysis:latest
+    container_name: contract_analysis
+    ports:
+      - "8001:8001"
+    environment:
+      - LORA_DIR=/app/lora_output
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+      - ./02_contract_analysis/lora_output:/app/lora_output
+      - faiss_data:/app/faiss_index
+    networks: [ai_network]
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ── 03 · Code Suggestion ──────────────────────────────────────────────────────
+  code_suggestion:
+    build:
+      context: ./03_code_suggestion
+    image: ai_projects/code_suggestion:latest
+    container_name: code_suggestion
+    ports:
+      - "8002:8002"
+    environment:
+      - MODEL_DIR=/app/codellama_output
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+      - ./03_code_suggestion/codellama_output:/app/codellama_output
+    networks: [ai_network]
+    restart: unless-stopped
+
+  # ── 04 · Empathetic Response ──────────────────────────────────────────────────
+  empathetic_response:
+    build:
+      context: ./04_empathetic_response
+    image: ai_projects/empathetic_response:latest
+    container_name: empathetic_response
+    ports:
+      - "8003:8003"
+    environment:
+      - EMOTION_MODEL_DIR=/app/roberta_emotion_output
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+      - ./04_empathetic_response/roberta_emotion_output:/app/roberta_emotion_output
+    networks: [ai_network]
+    restart: unless-stopped
+
+  # ── 05 · Meeting Summarizer ───────────────────────────────────────────────────
+  meeting_summarizer:
+    build:
+      context: ./05_meeting_summarizer
+    image: ai_projects/meeting_summarizer:latest
+    container_name: meeting_summarizer
+    ports:
+      - "8004:8004"
+    environment:
+      - WHISPER_MODEL=base
+      - BART_MODEL=facebook/bart-large-cnn
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    networks: [ai_network]
+    restart: unless-stopped
+
+  # ── 06 · Review Intelligence ──────────────────────────────────────────────────
+  review_intelligence:
+    build:
+      context: ./06_review_intelligence
+    image: ai_projects/review_intelligence:latest
+    container_name: review_intelligence
+    ports:
+      - "8005:8005"
+    environment:
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    networks: [ai_network]
+    restart: unless-stopped
+
+  # ── 07 · RAG Knowledge Base ───────────────────────────────────────────────────
+  rag_knowledge_base:
+    build:
+      context: ./07_rag_knowledge_base
+    image: ai_projects/rag_knowledge_base:latest
+    container_name: rag_knowledge_base
+    ports:
+      - "8006:8006"
+    environment:
+      - VECTOR_STORE=faiss
+      - LLM_MODEL=google/flan-t5-large
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+      - PINECONE_API_KEY=${PINECONE_API_KEY:-}
+      - PINECONE_INDEX=${PINECONE_INDEX:-knowledge-base}
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+      - faiss_data:/app/faiss_knowledge_index
+    networks: [ai_network]
+    restart: unless-stopped
+
+  # ── 08 · Personal Assistant ───────────────────────────────────────────────────
+  personal_assistant:
+    build:
+      context: ./08_personal_chat_assistant
+    image: ai_projects/personal_assistant:latest
+    container_name: personal_assistant
+    ports:
+      - "8007:8007"
+    environment:
+      - LLM_MODEL=google/flan-t5-large
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+      - chroma_data:/app/chroma_memory
+      - ./08_personal_chat_assistant/user_profiles.json:/app/user_profiles.json
+    networks: [ai_network]
+    restart: unless-stopped
+
+  # ── Dashboard ─────────────────────────────────────────────────────────────────
+  dashboard:
+    image: python:3.11-slim
+    container_name: ai_dashboard
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "8501:8501"
+    command: >
+      bash -c "pip install streamlit requests -q &&
+               streamlit run dashboard.py --server.port 8501 --server.address 0.0.0.0"
+    networks: [ai_network]
+    depends_on:
+      - qa_bot
+      - empathetic_response
+      - meeting_summarizer
+      - review_intelligence
+      - rag_knowledge_base
+      - personal_assistant
+    restart: unless-stopped

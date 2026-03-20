@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Models (too large for GitHub — use HuggingFace Hub instead)
+**/model_output/
+**/lora_output/
+**/codellama_output/
+**/roberta_emotion_output/
+**/faiss_index/
+**/faiss_knowledge_index/
+**/chroma_memory/
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Secrets
+.env
+*.env
+.env.local
+user_profiles.json
+
+# Data
+data/
+*.csv
+*.jsonl
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp

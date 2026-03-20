@@ -1,0 +1,9 @@
+transformers==4.40.0
+torch==2.2.0
+openai-whisper==20231117
+fastapi==0.110.0
+uvicorn==0.29.0
+streamlit==1.33.0
+python-multipart==0.0.9
+pydantic==2.6.0
+ffmpeg-python==0.2.0
